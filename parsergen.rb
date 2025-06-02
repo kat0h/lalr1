@@ -1,0 +1,289 @@
+Grammer = Struct.new :vn, :vt, :s, :p, keyword_init: true do
+  def inspect
+    ret = "{\n  Vn: {#{vn.to_a.map(&:to_s).join(", ")}}\n"
+    ret << "  Vt: {#{vt.to_a.map(&:to_s).join(", ")}}\n"
+    ret << "  S: #{s},\n"
+    ret << "  P: {\n"
+    p.each do
+      ret << "    " << it.inspect << ",\n"
+    end
+    ret << "  }\n}"
+  end
+end
+
+Rule = Struct.new(:l, :r) do
+  def inspect = l.to_s << " → " << r.join(" ")
+end
+
+LR0 = Struct.new :l, :r, :dot do
+  def inspect
+    ret = "[#{l} → "
+    r.each_index do |i|
+      ret << (i == dot ? "・" : "") + "#{r[i]}" + (i != r.size - 1 ? " " : "")
+    end
+    ret << "・" if dot == r.size
+    ret << "]"
+  end
+end
+
+LR1 = Struct.new :l, :r, :dot, :ls do
+  def complete? = r.size == dot
+  def inspect
+    ret = "[#{l} → "
+    r.each_index do |i|
+      ret << (i == dot ? "・" : "") + "#{r[i]}" + (i != r.size - 1 ? " " : "")
+    end
+    ret << "・" if dot == r.size
+    ret << ", #{ls}]"
+  end
+  def coreeql?(lr1) = l == lr1.l && r == lr1.r && dot == lr1.dot
+  def to_rule = Rule.new(l, r)
+  def lr0 = LR0.new(l, r, dot)
+  def kernel?(g) = l == g.s || !dot.zero? ? true : false
+end
+
+def printLR1Set set, kernel_only=nil # LR(1)項集合を見易く表示するやつ
+  q = if kernel_only.nil?
+    set.to_a
+  else
+    set.to_a.select{it.kernel?(kernel_only)}
+  end
+  while !q.empty?
+    i=q.shift;ls=[i.ls]
+    q.reject!{i.coreeql?(_1)?ls<<_1.ls: false}
+    ret="[#{i.l} → "
+    i.r.each_index do
+      ret<<(_1==i.dot ? "・":"")+"#{i.r[_1]}"+(_1!=i.r.size-1?" ":"")
+    end
+    ret<<" ・"if i.dot==i.r.size
+    ret<<", #{ls.map{_1==:EOF ??$:_1}.join("/")}]"
+    puts ret
+  end
+end
+
+# first -> 終端記号の集合
+# g : Grammer
+# a : 記号列
+def first g,a,visited=Set[]
+  return Set[] if visited.include?(a); visited<<a
+  g.vt.include?(a)?Set[a]:g.p.find_all{_1.l==a}.map{first g,_1.r[0],visited}.reduce(&:|)
+end
+
+gram = Grammer.new(
+  vn: Set[:S, :E, :T, :F],
+  vt: Set["(", ")", "*", "+", "i", :EOF],
+  s: :S,
+  p: Set[
+    Rule.new(:S, [:E]), # ここの形式は変えない
+    Rule.new(:E, [:E, "+", :T]),
+    Rule.new(:E, [:T]),
+    Rule.new(:T, [:T, "*", :F]),
+    Rule.new(:T, [:F]),
+    Rule.new(:F, ["(", :E, ")"]),
+    Rule.new(:F, ["i"]),
+  ],
+)
+
+(gram.vn | gram.vt).each do
+  puts "first #{it.inspect} = {#{(first gram, it).join(", ")}}"
+end
+
+# closure
+# g : Grammer
+# i : 状態
+def closure g,i
+  i_=i.dup
+  queue=[*i_]
+  while !queue.empty?
+    item=queue.shift
+    b=item.r[item.dot]
+    next if !g.vn.include?(b)
+    a2=item.r.slice(item.dot+1..)<< item.ls
+    firsts=first(g,a2.first)
+    g.p.find_all{_1.l==b}.each{|ruleb|
+      firsts.each{|y|
+        t=LR1.new(b,ruleb.r,0,y)
+        queue<<t if i_.add? t
+      }
+    }
+  end
+  i_
+end
+
+# goto -> 状態
+# g : Grammer
+# i : 状態
+# a : 記号
+def goto(g,i,a) =
+  closure g,i.filter{|t|t.r[t.dot]==a}
+  .map{|t|LR1.new(t.l,t.r,t.dot+1,t.ls)}.to_set
+
+# canonicalset -> 正準集合
+# g  : Grammer
+# i0 : 初期状態
+def canonicalset g,i0
+  x,y,s=Set[i0],Set[],g.vn|g.vt
+  while !x.empty?
+    i=x.first;x.delete i
+    y<<i
+    s.each do
+      id=goto g,i,_1
+      next if id.size()==0
+      x<<id if !x.include?(id)&&!y.include?(id)
+    end
+  end
+  y
+end
+
+# action -> 動作
+# g      : 文法
+# ca     : 正準集合
+# i      : 状態
+# a      : 記号
+# accept : 受理するときのLR(1)項
+# 動作 ::= sj | rj
+# TODO conflict検出
+def action(g,ca,i,a,accept)
+  act = []
+  production_rules = Hash[g.p.each_with_index.to_a]
+  ca_i = Hash[ca.each_with_index.to_a]
+  # shift
+  s = ca_i[goto g, i, a]
+  act.push([:s, s]) if !s.nil?
+  # reduce
+  i.select{_1.complete? && _1.l != g.s}.select{_1.ls==a}.each do|t|
+    r = production_rules[t.to_rule]
+    act.push([:r, r])
+  end
+  act.push([:a]) if i.include?(accept) && a == :EOF
+  if act.size > 1
+    puts "conflict detected!"
+    puts "use first action"
+    p act
+    puts
+    return act.first
+  end
+  return act.first
+end
+
+# rule   : 生成規則の配列   Rule[]
+# vn     : 非終端記号の集合 Set[Symbol]
+# vt     : 終端記号の集合   Set[Symbol]
+# s      : 開始記号         Symbol
+# action : 動作表           Action[][] i x t → Action (i ∈ I, t ∈ vt)
+# goto   : 行先表           I[][]      i x a → I      (i ∈ I, a ∈ vt)
+LR1ParsingTable=Struct.new(:rule,:vn,:vt,:s,:action,:goto,keyword_init:true)do
+  def inspect
+    ret = "LR1ParsingTable:\n"
+    ret << "  rule   : #{rule}\n"
+    ret << "  Vn     : #{vn.to_a.map(&:to_s).join(", ")}\n"
+    ret << "  Vt     : #{vt.to_a.map(&:to_s).join(", ")}\n"
+    ret << "  s      : #{s}\n"
+    ret << "  action :\n"
+    ret << "          \t|" << vt.join("\t|") << "\t|\n"
+    action.each_with_index do |i,idx|
+      ret << "          I#{idx}\t|" << i.map{!_1.nil?? _1.join(""):nil}.join("\t|") << "\t|\n"
+    end
+    ret << "  goto   : \n"
+    ret << ([["     "]+vn.to_a]+goto.each_with_index.map{|i,idx|["I#{idx}",*i.map{!_1.nil?? "I#{_1}":nil}]})
+      .filter{!_1[1..].none?}
+      .transpose
+      .filter{!_1[1..].none?}
+      .transpose
+      .map{"          "+_1.join("\t|")+"\t|"}
+      .join("\n")
+    ret
+  end
+end
+class Parser
+  def initialize table
+    @table = table
+    @states = []
+    @stack = [0]
+  end
+  def print_table
+    p @table
+  end
+  def print_state
+    puts "states = #{@states.inspect}"
+    puts "stack  = #{@stack.inspect}"
+  end
+  def parse lex,debug=false
+    lex.each do |t|
+      if debug
+        puts
+        puts t
+        print_state
+      end
+      a = @table.action[@stack.last][@table.vt.index t]
+      p a if debug
+      case a
+      in [:s, i]
+        puts "shift #{i}" if debug
+        @stack.push i
+      in [:r, r]
+        puts "reduce #{r}" if debug
+        pop_count = @table.rule[r].r.size
+        @stack.pop pop_count
+        @stack.push @table.goto[@stack.last][@table.vn.index(@table.rule[r].l)]
+        redo
+      in [:a]
+        return :accept
+      else
+        return :error
+      end
+    end
+  end
+end
+
+def print_table row, col, table
+  r = row.to_a
+  puts "\t" + col.join("\t")
+  table.each_with_index { |i,idx|
+    puts ([r[idx]] + i
+      .map { _1.nil? ? "." : _1 })
+      .join("\t")
+  }
+end
+
+def generate_lr1_parser grammer, start
+  i0 = closure grammer, Set[start]
+  ca = canonicalset grammer, i0
+  ca_indexed = Hash[ca.each_with_index.to_a]
+  ca.each{printLR1Set(it);puts}
+  e=start.dup;e.dot=e.r.size;
+  action = ca_indexed.keys.map { |i| grammer.vt.map{|a|action grammer,ca,i,a,e} }
+  goto = ca_indexed.keys.map{|i|grammer.vn.map{|a|ca_indexed[goto grammer,i,a]}}
+  Parser.new(LR1ParsingTable.new(
+    rule: grammer.p.to_a,
+    vn: grammer.vn.to_a,
+    vt: grammer.vt.to_a,
+    s: grammer.s,
+    action: action,
+    goto: goto,
+  ))
+end
+
+G1 = Grammer.new(
+  vn: Set[:S, :E, :T, :F],
+  vt: Set["(", ")", "*", "+", "i", :EOF],
+  s: :S,
+  p: Set[
+    Rule.new(:S, [:E]), # ここの形式は変えない
+    Rule.new(:E, [:E, "+", :T]),
+    Rule.new(:E, [:T]),
+    Rule.new(:T, [:T, "*", :F]),
+    Rule.new(:T, [:F]),
+    Rule.new(:F, ["(", :E, ")"]),
+    Rule.new(:F, ["i"]),
+  ],
+)
+
+if __FILE__ == $PROGRAM_NAME
+  # parser = generate_lr1_parser(G1, LR1.new(:S, [:E], 0, :EOF))
+  # parser.print_table
+  # lex = ["i", "+", "i", "+", "i", :EOF]
+  # p lex
+  # p parser.parse lex, true
+end
+
