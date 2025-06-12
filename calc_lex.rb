@@ -45,6 +45,3 @@ class Lexer
   def eof? = @position >= @input.length
 end
 
-# input = "12 + 34 * (56 + 78)"
-# lexer = Lexer.new(input)
-# lexer.each {p it}

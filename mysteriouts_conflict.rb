@@ -1,5 +1,8 @@
 require_relative "parsergen_lalr"
 
+# https://www.gnu.org/software/bison/manual/html_node/Mysterious-Conflicts.html
+# LR(1)文法であるが、LALR(1)文法ではない構文の例
+
 conflict = Grammer.new(
   vn: Set[:S, :def, :param_spec, :return_spec, :type, :name, :name_list],
   vt: Set[",", ":", "id", :EOF],
@@ -17,15 +20,12 @@ conflict = Grammer.new(
     Rule.new(:name_list, [:name]),
     Rule.new(:name_list, [:name, ",", :name_list]),
   ],
+  precedence: []
 )
 
 start = LR1.new(:S, [:def], 0, :EOF)
 
-# i0 = closure conflict, Set[start]
-# ca = canonicalset conflict, i0
-# ca.each_with_index{puts "\nI#{_2}";printLR1Set(_1,conflict)}
-
 parser = generate_lr1_parser conflict, start
 parser.print_table
-parser = generate_lalr1_parser conflict, start
-parser.print_table
+# parser = generate_lalr1_parser conflict, start
+# parser.print_table

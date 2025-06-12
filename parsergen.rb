@@ -1,4 +1,4 @@
-Grammer = Struct.new :vn, :vt, :s, :p, keyword_init: true do
+Grammer = Struct.new :vn, :vt, :s, :p, :precedence, keyword_init: true do
   def inspect
     ret = "{\n  Vn: {#{vn.to_a.map(&:to_s).join(", ")}}\n"
     ret << "  Vt: {#{vt.to_a.map(&:to_s).join(", ")}}\n"
@@ -7,7 +7,9 @@ Grammer = Struct.new :vn, :vt, :s, :p, keyword_init: true do
     p.each do
       ret << "    " << it.inspect << ",\n"
     end
-    ret << "  }\n}"
+    ret << "  }\n"
+    ret << "  precedence: #{precedence}\n"
+    ret << "}"
   end
 end
 
@@ -288,7 +290,9 @@ G1 = Grammer.new(
     Rule.new(:F, ["(", :E, ")"], -> v { v[1] }),
     Rule.new(:F, ["i"],          -> v { v[0] }),
   ],
+  precedence: []
 )
+
 
 if __FILE__ == $PROGRAM_NAME
   parser = generate_lr1_parser(G1, LR1.new(:S, [:E], 0, :EOF))

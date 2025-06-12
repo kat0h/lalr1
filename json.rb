@@ -29,6 +29,7 @@ Json = Grammer.new(
     Rule.new(:String, [:STRING]),
     Rule.new(:Number, [:NUMBER]),
   ],
+  precedence: []
 )
 
 

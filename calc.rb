@@ -1,5 +1,5 @@
 require_relative "parsergen_lalr"
-require_relative "lexer"
+require_relative "calc_lex"
 
 Calc = Grammer.new(
   vn: Set[:S, :E, :T, :F],
@@ -14,6 +14,7 @@ Calc = Grammer.new(
     Rule.new(:F, ["(", :E, ")"], -> v { v[1] }),
     Rule.new(:F, ["i"],          -> v { v[0] }),
   ],
+  precedence: []
 )
 
 def repl
