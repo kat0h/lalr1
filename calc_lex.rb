@@ -12,9 +12,15 @@ class Lexer
     when '+'
       advance
       ["+", nil]
+    when '-'
+      advance
+      ["-", nil]
     when '*'
       advance
       ["*", nil]
+    when '/'
+      advance
+      ["/", nil]
     when '('
       advance
       ["(", nil]
@@ -44,4 +50,5 @@ class Lexer
   end
   def eof? = @position >= @input.length
 end
+
 

@@ -158,11 +158,28 @@ def action(g,ca,i,a,accept)
     act.push([:r, r])
   end
   act.push([:a]) if i.include?(accept) && a == :EOF
+  # conflictの解消
   if act.size > 1
     puts "conflict detected!"
-    puts "use first action"
+    p a
     p act
-    puts
+    p ca_i[i]
+    act_shift = []
+    act_reduce = []
+    act.each {
+      case it
+      in [:s, i]
+        act_shift.push i
+      in [:r, i]
+        act_reduce.push i
+      end
+    }
+    # https://github.com/ruby/lrama/blob/00cefd1e5e8cc7564874bab06dffd6cba3af0cc4/lib/lrama/states.rb#L502-L544
+    # Shift/Reduce conflict
+    # 優先順位を使って解消する
+    # できない場合、Shiftを優先
+    # Reduce/Reduce conflict
+    # 解消できないときは最初に出てきたRuleを優先
     return act.first
   end
   return act.first
@@ -264,7 +281,7 @@ def generate_lr1_parser grammer, start
   i0 = closure grammer, Set[start]
   ca = canonicalset grammer, i0
   ca_indexed = Hash[ca.each_with_index.to_a]
-  # ca.each{printLR1Set(it);puts}
+  ca.each{printLR1Set(it);puts}
   e=start.dup;e.dot=e.r.size;
   action = ca_indexed.keys.map { |i| grammer.vt.map{|a|action grammer,ca,i,a,e} }
   goto = ca_indexed.keys.map{|i|grammer.vn.map{|a|ca_indexed[goto grammer,i,a]}}

@@ -3,13 +3,15 @@ require_relative "calc_lex"
 
 Calc = Grammer.new(
   vn: Set[:S, :E, :T, :F],
-  vt: Set["(", ")", "*", "+", "i", :EOF],
+  vt: Set["(", ")", "*", "+", "i", "-", "/",:EOF],
   s: :S,
   p: Set[
     Rule.new(:S, [:E],           -> v { v[0] }),
     Rule.new(:E, [:E, "+", :T],  -> v { v[0] + v[2] }),
+    Rule.new(:E, [:E, "-", :T],  -> v { v[0] - v[2] }),
     Rule.new(:E, [:T],           -> v { v[0] }),
     Rule.new(:T, [:T, "*", :F],  -> v { v[0] * v[2]}),
+    Rule.new(:T, [:T, "/", :F],  -> v { v[0] / v[2]}),
     Rule.new(:T, [:F],           -> v { v[0] }),
     Rule.new(:F, ["(", :E, ")"], -> v { v[1] }),
     Rule.new(:F, ["i"],          -> v { v[0] }),
