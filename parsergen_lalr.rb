@@ -75,7 +75,7 @@ def generate_lalr1_parser grammer, start
       # accept
       actions.push([:a]) if i.include?(accept) && a == :EOF
       if actions.size > 1
-        resolve_conflict_by_precedence(grammer,i,a,actions,merged_ca_indexed,true)
+        resolve_conflict_by_precedence(grammer,i,a,actions,merged_ca_indexed)
       else
         actions.first
       end

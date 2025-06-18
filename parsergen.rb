@@ -239,7 +239,7 @@ def action(g,ca,i,a,accept)
   act.push([:a]) if i.include?(accept) && a == :EOF
   # conflictの解消
   if act.size > 1
-    return resolve_conflict_by_precedence(g,i,a,ca_i,act)
+    return resolve_conflict_by_precedence(g,i,a,act,ca_i,false)
   end
   return act.first
 end
