@@ -137,6 +137,29 @@ def canonicalset g,i0
   y
 end
 
+# get_precedence -> 優先度(number)
+# g : Grammer
+# a : 終端記号
+def get_precedence(g, a)
+  if p=g.precedence.index { it[1].include?(a) }
+    p
+  else
+    nil
+  end
+end
+
+# get_assoc -> 結合性
+# g : Grammer
+# a : 終端記号
+def get_assoc(g, a)
+  if p=g.precedence.index{it[1].include?(a)}
+    g.precedence[p][0]
+  else
+    nil
+  end
+end
+
+
 # action -> 動作
 # g      : 文法
 # ca     : 正準集合
@@ -159,28 +182,63 @@ def action(g,ca,i,a,accept)
   end
   act.push([:a]) if i.include?(accept) && a == :EOF
   # conflictの解消
+  debug = false
   if act.size > 1
-    puts "conflict detected!"
-    p a
-    p act
-    p ca_i[i]
+    if debug
+      puts
+      puts "状態#{ca_i[i]}で#{a}が入力の時コンフリクトが検出されました"
+      printLR1Set(i)
+    end
+
     act_shift = []
     act_reduce = []
     act.each {
       case it
-      in [:s, i]
-        act_shift.push i
-      in [:r, i]
-        act_reduce.push i
+      in [:s, p]
+        act_shift.push p
+      in [:r, p]
+        act_reduce.push p
       end
     }
+    if act_reduce.size > 1
+      throw "can't resolve reduce/reduce conflict"
+    end
+    act_shift = act_shift.first
+    act_reduce = act_reduce.first
     # https://github.com/ruby/lrama/blob/00cefd1e5e8cc7564874bab06dffd6cba3af0cc4/lib/lrama/states.rb#L502-L544
     # Shift/Reduce conflict
     # 優先順位を使って解消する
-    # できない場合、Shiftを優先
-    # Reduce/Reduce conflict
-    # 解消できないときは最初に出てきたRuleを優先
-    return act.first
+    shiftprec = get_precedence(g, a)
+    reduceprec = i.map {|t|
+      if t.dot < 2
+        nil
+      else
+        t.r[t.dot-2]
+      end
+    }.compact.uniq.map{get_precedence(g,it)}.max
+    puts "shiftの優先度: #{shiftprec}" if debug
+    # 注目点の二つ前の記号の優先順位のうち最大
+    puts "reduceの優先度: #{reduceprec}" if debug
+    if shiftprec > reduceprec
+      puts "> shiftを選択" if debug
+      return [:s, act_shift]
+    elsif shiftprec < reduceprec
+      puts "> reduceを選択" if debug
+      return [:r, act_reduce]
+    elsif shiftprec == reduceprec
+      case get_assoc(g, a)
+      in :left
+        puts "> reduceを選択" if debug
+        return [:r, act_reduce]
+      in :right
+        puts "> shiftを選択" if debug
+        return [:s, act_shift]
+      in :noassoc
+        throw "not implemented"
+      end
+    else
+      throw "競合を解消できませんでした"
+    end
   end
   return act.first
 end
@@ -281,7 +339,7 @@ def generate_lr1_parser grammer, start
   i0 = closure grammer, Set[start]
   ca = canonicalset grammer, i0
   ca_indexed = Hash[ca.each_with_index.to_a]
-  ca.each{printLR1Set(it);puts}
+  # ca.each{printLR1Set(it);puts}
   e=start.dup;e.dot=e.r.size;
   action = ca_indexed.keys.map { |i| grammer.vt.map{|a|action grammer,ca,i,a,e} }
   goto = ca_indexed.keys.map{|i|grammer.vn.map{|a|ca_indexed[goto grammer,i,a]}}
