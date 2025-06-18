@@ -23,9 +23,9 @@ Calc2 = Grammer.new(
 
 if __FILE__ == $PROGRAM_NAME
   # p Calc2
-  parser = generate_lr1_parser(Calc2, LR1.new(:S, [:expr], 0, :EOF))
+  parser = generate_lalr1_parser(Calc2, LR1.new(:S, [:expr], 0, :EOF))
   parser.print_table
-  lex = Lexer.new("1+2*3")
+  lex = Lexer.new("1+2*3+2")
   p parser.parse lex
 end
 

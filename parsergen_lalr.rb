@@ -74,21 +74,14 @@ def generate_lalr1_parser grammer, start
       end
       # accept
       actions.push([:a]) if i.include?(accept) && a == :EOF
-      actions
-    end
-  end
-  # conflictの検出
-  action_table.each do
-    # p it
-    it.each do
-      if it.size > 1
-        action_table.each{p it}
-        throw "conflict"
+      if actions.size > 1
+        resolve_conflict_by_precedence(grammer,i,a,actions,merged_ca_indexed,true)
+      else
+        actions.first
       end
     end
   end
   
-  action_table = action_table.map{it.map{it.empty? ? nil : it[0]}}
   Parser.new(LR1ParsingTable.new(
     rule: grammer.p.to_a,
     vn: grammer.vn.to_a,
