@@ -27,5 +27,5 @@ start = LR1.new(:S, [:def], 0, :EOF)
 
 parser = generate_lr1_parser conflict, start
 parser.print_table
-# parser = generate_lalr1_parser conflict, start
-# parser.print_table
+parser = generate_lalr1_parser conflict, start
+parser.print_table

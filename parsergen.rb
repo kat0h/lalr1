@@ -314,7 +314,9 @@ class Parser
         pop_count = @table.rule[r].r.size
         @stack.pop pop_count
         @stack.push @table.goto[@stack.last][@table.vn.index(@table.rule[r].l)]
-        @val.push @table.rule[r].act.(@val.pop pop_count)
+        if act=@table.rule[r].act
+          @val.push act.(@val.pop pop_count)
+        end
         redo
       in [:a]
         return [:accept, @val.last]
@@ -369,11 +371,9 @@ G1 = Grammer.new(
   precedence: []
 )
 
-
 if __FILE__ == $PROGRAM_NAME
   parser = generate_lr1_parser(G1, LR1.new(:S, [:E], 0, :EOF))
   parser.print_table
   lex = ["i", "+", "i", "*", "i", :EOF].zip([3, nil, 4, nil, 7, nil])
   p parser.parse lex, false
 end
-
