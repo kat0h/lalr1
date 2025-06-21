@@ -23,9 +23,7 @@ conflict = Grammer.new(
   precedence: []
 )
 
-start = LR1.new(:S, [:def], 0, :EOF)
-
-parser = generate_lr1_parser conflict, start
+parser = generate_lr1_parser conflict
 parser.print_table
-parser = generate_lalr1_parser conflict, start
+parser = generate_lalr1_parser conflict
 parser.print_table

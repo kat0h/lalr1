@@ -23,13 +23,30 @@ Calc2 = Grammer.new(
   ]
 )
 
-if __FILE__ == $PROGRAM_NAME
-  # p Calc2
-  parser = generate_lalr1_parser(Calc2, LR1.new(:S, [:expr], 0, :EOF))
-  parser.print_table
-  lex = Lexer.new("2*3+4^3^2")
-  p parser.parse lex
+def repl
+  calc = generate_lalr1_parser(Calc2, LR1.new(:S, [:expr], 0, :EOF))
+  calc.print_table
+  while true
+    begin
+      print "calc> "
+      input = STDIN.gets
+      break if input.nil?
+      prompt = input.chomp
+      next if prompt.size.zero?
+      lex = Lexer.new prompt
+      result = calc.parse lex, false
+      case result
+      in [:accept, n]
+        p n
+      in [:error, reason]
+        p reason
+        p Lexer.new(prompt).to_a
+      end
+    end
+  end
 end
+
+repl if __FILE__ == $PROGRAM_NAME
 
 # expr    : expr '+' expr
 #         | expr '-' expr

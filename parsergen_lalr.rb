@@ -1,6 +1,7 @@
 require_relative "parsergen"
 
-def generate_lalr1_parser grammer, start
+def generate_lalr1_parser grammer
+  start = grammer.p.find{ it.l == grammer.s }.to_lr1(0, :EOF)
   i0 = closure grammer, Set[start]
 
   ca = (canonicalset grammer, i0).to_a
@@ -93,7 +94,7 @@ def generate_lalr1_parser grammer, start
 end
 
 if __FILE__ == $PROGRAM_NAME
-  parser = generate_lalr1_parser G1, LR1.new(:S, [:E], 0, :EOF)
+  parser = generate_lalr1_parser G1
   parser.print_table
   lex = ["(", "i", ")", "+", "i", :EOF].zip([nil, 3, nil, nil, 5, nil])
   p parser.parse lex, false

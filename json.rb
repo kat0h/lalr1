@@ -33,7 +33,7 @@ Json = Grammer.new(
 )
 
 
-parser = generate_lalr1_parser Json, LR1.new(:JSONText, [:Value], 0, :EOF)
+parser = generate_lalr1_parser Json
 parser.print_table
 lex = ["{", :STRING, ":", "{", :STRING, ":", :NUMBER, "}", "}", :EOF]
 p parser.parse lex, true

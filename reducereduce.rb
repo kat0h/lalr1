@@ -17,7 +17,7 @@ ReduceReduce = Grammer.new(
 )
 
 if __FILE__ == $PROGRAM_NAME
-  parser = generate_lr1_parser(ReduceReduce, LR1.new(:S, [:sequence], 0, :EOF))
+  parser = generate_lr1_parser ReduceReduce
   parser.print_table
 end
 

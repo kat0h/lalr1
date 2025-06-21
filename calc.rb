@@ -20,7 +20,7 @@ Calc = Grammer.new(
 )
 
 def repl
-  calc = generate_lalr1_parser Calc, LR1.new(:S, [:E], 0, :EOF)
+  calc = generate_lalr1_parser Calc
   calc.print_table
   while true
     begin

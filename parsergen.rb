@@ -15,6 +15,7 @@ end
 
 Rule = Struct.new(:l, :r, :act) do
   def inspect = l.to_s << " → " << r.join(" ")
+  def to_lr1(dot, ls) = LR1.new(l, r, dot, ls, act)
 end
 
 LR0 = Struct.new :l, :r, :dot, :act do
@@ -338,7 +339,8 @@ def print_table row, col, table
   }
 end
 
-def generate_lr1_parser grammer, start
+def generate_lr1_parser grammer
+  start = grammer.p.find{ it.l == grammer.s }.to_lr1(0, :EOF)
   i0 = closure grammer, Set[start]
   ca = canonicalset grammer, i0
   ca_indexed = Hash[ca.each_with_index.to_a]
@@ -371,8 +373,9 @@ G1 = Grammer.new(
   precedence: []
 )
 
+
 if __FILE__ == $PROGRAM_NAME
-  parser = generate_lr1_parser(G1, LR1.new(:S, [:E], 0, :EOF))
+  parser = generate_lr1_parser G1 # LR1.new(:S, [:E], 0, :EOF))
   parser.print_table
   lex = ["i", "+", "i", "*", "i", :EOF].zip([3, nil, 4, nil, 7, nil])
   p parser.parse lex, false
