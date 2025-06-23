@@ -1,4 +1,6 @@
-require_relative "parsergen_lalr"
+# reduce/reduceコンフリクトを起こす文法
+
+require_relative "../parsergen"
 
 ReduceReduce = Grammer.new(
   vn: Set[:S, :sequence, :maybeword],

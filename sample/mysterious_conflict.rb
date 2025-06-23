@@ -1,7 +1,7 @@
-require_relative "parsergen_lalr"
-
 # https://www.gnu.org/software/bison/manual/html_node/Mysterious-Conflicts.html
 # LR(1)文法であるが、LALR(1)文法ではない構文の例
+
+require_relative "../parsergen"
 
 conflict = Grammer.new(
   vn: Set[:S, :def, :param_spec, :return_spec, :type, :name, :name_list],

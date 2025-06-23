@@ -1,5 +1,7 @@
-require_relative "parsergen_lalr"
+require_relative "../parsergen"
 require_relative "calc_lex"
+
+# 演算子の優先順位で曖昧性を解消
 
 Calc2 = Grammer.new(
   vn: Set[:S, :expr, :primary],
@@ -24,7 +26,8 @@ Calc2 = Grammer.new(
 )
 
 def repl
-  calc = generate_lalr1_parser(Calc2, LR1.new(:S, [:expr], 0, :EOF))
+  # calc = generate_lr1_parser(Calc2)
+  calc = generate_lalr1_parser(Calc2)
   calc.print_table
   while true
     begin

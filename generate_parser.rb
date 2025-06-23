@@ -1,4 +1,24 @@
-require_relative "parsergen"
+require_relative "calculation_state"
+require_relative "parser"
+
+def generate_lr1_parser grammer
+  start = grammer.p.find{ it.l == grammer.s }.to_lr1(0, :EOF)
+  i0 = closure grammer, Set[start]
+  ca = canonicalset grammer, i0
+  ca_indexed = Hash[ca.each_with_index.to_a]
+  # ca.each{printLR1Set(it);puts}
+  e=start.dup;e.dot=e.r.size;
+  action = ca_indexed.keys.map { |i| grammer.vt.map{|a|action grammer,ca,i,a,e} }
+  goto = ca_indexed.keys.map{|i|grammer.vn.map{|a|ca_indexed[goto grammer,i,a]}}
+  Parser.new(LR1ParsingTable.new(
+    rule: grammer.p.to_a,
+    vn: grammer.vn.to_a,
+    vt: grammer.vt.to_a,
+    s: grammer.s,
+    action: action,
+    goto: goto,
+  ))
+end
 
 def generate_lalr1_parser grammer
   start = grammer.p.find{ it.l == grammer.s }.to_lr1(0, :EOF)
@@ -91,11 +111,4 @@ def generate_lalr1_parser grammer
     action: action_table,
     goto: gototable.map{it[...grammer.vn.size]}
   ))
-end
-
-if __FILE__ == $PROGRAM_NAME
-  parser = generate_lalr1_parser G1
-  parser.print_table
-  lex = ["(", "i", ")", "+", "i", :EOF].zip([nil, 3, nil, nil, 5, nil])
-  p parser.parse lex, false
 end

@@ -1,4 +1,6 @@
-require_relative "parsergen_lalr"
+# jsonパーサー
+
+require_relative "../parsergen"
 
 Json = Grammer.new(
   vn: Set[:JSONText, :Value, :Object, :Members, :Member, :Array, :Elements, :String, :Number],

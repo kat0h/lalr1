@@ -1,3 +1,5 @@
+# 四則演算プログラム用のlexer
+
 class Lexer
   include Enumerable
   def initialize(input)
