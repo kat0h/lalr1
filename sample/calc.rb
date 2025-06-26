@@ -1,4 +1,4 @@
-require_relative "../parsergen"
+require_relative "../main"
 require_relative "calc_lex"
 
 Calc = Grammer.new(

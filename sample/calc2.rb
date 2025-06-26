@@ -1,4 +1,4 @@
-require_relative "../parsergen"
+require_relative "../main"
 require_relative "calc_lex"
 
 # 演算子の優先順位で曖昧性を解消
